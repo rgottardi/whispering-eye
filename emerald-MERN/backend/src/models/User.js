@@ -4,7 +4,11 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const UserSchema = new mongoose.Schema({
-	name: {
+	firstName: {
+		type: String,
+		required: true,
+	},
+	lastName: {
 		type: String,
 		required: true,
 	},
@@ -21,10 +25,6 @@ const UserSchema = new mongoose.Schema({
 		type: String,
 		enum: ['SystemAdmin', 'TenantAdmin', 'User'],
 		default: 'User',
-	},
-	username: {
-		type: String,
-		unique: true,
 	},
 	tenantId: {
 		type: String,

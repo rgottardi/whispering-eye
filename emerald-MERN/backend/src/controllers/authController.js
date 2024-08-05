@@ -9,7 +9,8 @@ exports.register = async (req, res) => {
 	const { name, email, password, role } = req.body;
 	try {
 		const user = new User({
-			name,
+			firstName,
+			lastName,
 			email,
 			password,
 			role: role || 'User',
