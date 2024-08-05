@@ -8,31 +8,39 @@ jest.setTimeout(20000); // Increase Jest timeout to 20 seconds
 
 describe('Task Endpoints', () => {
 	let token;
-	let tenantId = 'tenant-1'; // Use a valid tenant ID for testing
+	let tenantId = 'tenant-1';
 
 	beforeAll(async () => {
 		// Authenticate and get a token for testing
 		const res = await request(app).post('/api/v1/auth/login').send({
 			email: 'admin@example.com',
-			password: 'adminpassword',
+			password: 'password', // Use the new password
 		});
+
+		if (!res.body.token) {
+			throw new Error('Failed to log in admin for tests');
+		}
 
 		token = res.body.token;
 	});
 
 	afterAll(async () => {
-		await mongoose.connection.close(); // Close Mongoose connection
-		server.close(); // Close server after tests
+		await mongoose.connection.close();
+		server.close();
 	});
 
 	it('should create a new task', async () => {
 		// Fetch a valid user ID from the database to use in the test
 		const userRes = await request(app).post('/api/v1/auth/login').send({
 			email: 'user@example.com',
-			password: 'userpassword',
+			password: 'password', // Use the new password
 		});
 
-		const userId = userRes.body.user._id; // Ensure the login response contains user info
+		if (!userRes.body.token) {
+			throw new Error('Failed to log in user for task assignment');
+		}
+
+		const userId = userRes.body.user._id; // Use the ID of a regular user
 
 		const res = await request(app)
 			.post('/api/v1/tasks/create')

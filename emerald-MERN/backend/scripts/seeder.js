@@ -89,7 +89,7 @@ const seedData = async () => {
 				email: 'alice.johnson@example.com',
 				password: 'password',
 				role: 'User',
-				tenantId: 'tenant-3',
+				tenantId: 'tenant-1',
 			},
 			{
 				firstName: 'Bob',
@@ -97,7 +97,7 @@ const seedData = async () => {
 				email: 'bob.brown@example.com',
 				password: 'password',
 				role: 'User',
-				tenantId: 'tenant-3',
+				tenantId: 'tenant-1',
 			},
 			{
 				firstName: 'Charlie',
@@ -105,7 +105,7 @@ const seedData = async () => {
 				email: 'charlie.davis@example.com',
 				password: 'password',
 				role: 'User',
-				tenantId: 'tenant-4',
+				tenantId: 'tenant-2',
 			},
 			{
 				firstName: 'Dana',
@@ -113,7 +113,7 @@ const seedData = async () => {
 				email: 'dana.white@example.com',
 				password: 'password',
 				role: 'User',
-				tenantId: 'tenant-4',
+				tenantId: 'tenant-2',
 			},
 		];
 
