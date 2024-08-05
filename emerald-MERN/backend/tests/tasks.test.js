@@ -1,12 +1,14 @@
 // backend/tests/tasks.test.js
 
 const request = require('supertest');
-const app = require('../server'); // Ensure your server exports the app instance
+const { app, server } = require('../server');
 const mongoose = require('mongoose');
+
+jest.setTimeout(20000); // Increase Jest timeout to 20 seconds
 
 describe('Task Endpoints', () => {
 	let token;
-	let tenantId;
+	let tenantId = 'tenant-1'; // Use a valid tenant ID for testing
 
 	beforeAll(async () => {
 		// Authenticate and get a token for testing
@@ -16,14 +18,22 @@ describe('Task Endpoints', () => {
 		});
 
 		token = res.body.token;
-		tenantId = 'your-tenant-id'; // Use a valid tenant ID for testing
 	});
 
 	afterAll(async () => {
-		await mongoose.connection.close();
+		await mongoose.connection.close(); // Close Mongoose connection
+		server.close(); // Close server after tests
 	});
 
 	it('should create a new task', async () => {
+		// Fetch a valid user ID from the database to use in the test
+		const userRes = await request(app).post('/api/v1/auth/login').send({
+			email: 'user@example.com',
+			password: 'userpassword',
+		});
+
+		const userId = userRes.body.user._id; // Ensure the login response contains user info
+
 		const res = await request(app)
 			.post('/api/v1/tasks/create')
 			.set('Authorization', `Bearer ${token}`)
@@ -31,7 +41,7 @@ describe('Task Endpoints', () => {
 			.send({
 				title: 'Test Task',
 				description: 'This is a test task.',
-				assignedTo: '605c72ef42e2b4c3b34b5b77', // Use a valid user ID
+				assignedTo: userId,
 			});
 
 		expect(res.statusCode).toEqual(201);

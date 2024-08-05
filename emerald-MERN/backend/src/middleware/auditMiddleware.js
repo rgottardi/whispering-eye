@@ -1,23 +1,31 @@
-// backend/src/middleware/auditMiddleware.js
+// backend/src/middleware/authMiddleware.js
 
-const Audit = require('../models/Audit');
+const jwt = require('jsonwebtoken');
 
-const logAction = (action) => async (req, res, next) => {
-	const { userId, tenantId } = req; // Extract userId and tenantId from request
+// Middleware to verify token and extract user info
+exports.verifyToken = (req, res, next) => {
+	const authHeader = req.headers['authorization'];
+	const token = authHeader && authHeader.split(' ')[1];
+
+	if (!token) {
+		return res
+			.status(403)
+			.json({ message: 'Access denied, no token provided' });
+	}
 
 	try {
-		const audit = new Audit({
-			action,
-			userId,
-			tenantId,
-			details: req.body,
-		});
-		await audit.save();
+		const decoded = jwt.verify(token, process.env.JWT_SECRET);
+		req.user = decoded;
 		next();
 	} catch (error) {
-		console.error('Error logging action:', error);
-		res.status(500).json({ message: 'Error logging action' });
+		res.status(400).json({ message: 'Invalid token' });
 	}
 };
 
-module.exports = logAction;
+// Middleware to check user role
+exports.checkRole = (roles) => (req, res, next) => {
+	if (!roles.includes(req.user.role)) {
+		return res.status(403).json({ message: 'Access denied' });
+	}
+	next();
+};

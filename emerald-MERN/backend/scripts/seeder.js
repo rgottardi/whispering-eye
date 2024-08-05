@@ -37,21 +37,24 @@ const seedData = async () => {
 				email: 'admin@example.com',
 				password: 'adminpassword',
 				role: 'SystemAdmin',
-				username: 'admin', // Ensure this is unique
+				username: 'admin',
+				tenantId: 'tenant-1',
 			},
 			{
 				name: 'Tenant Admin',
 				email: 'tenantadmin@example.com',
 				password: 'tenantpassword',
 				role: 'TenantAdmin',
-				username: 'tenantadmin', // Ensure this is unique
+				username: 'tenantadmin',
+				tenantId: 'tenant-1',
 			},
 			{
 				name: 'Regular User',
 				email: 'user@example.com',
 				password: 'userpassword',
 				role: 'User',
-				username: 'user', // Ensure this is unique
+				username: 'user',
+				tenantId: 'tenant-1',
 			},
 		];
 

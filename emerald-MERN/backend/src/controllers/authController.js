@@ -41,7 +41,7 @@ exports.login = async (req, res) => {
 			process.env.JWT_SECRET,
 			{ expiresIn: '1h' }
 		);
-		res.status(200).json({ token });
+		res.status(200).json({ token, user }); // Include user data in the response
 	} catch (error) {
 		res.status(400).json({ message: error.message });
 	}

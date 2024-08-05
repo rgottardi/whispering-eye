@@ -4,9 +4,9 @@ const nodemailer = require('nodemailer');
 
 // Configure the email transporter
 const transporter = nodemailer.createTransport({
-	host: 'smtp.example.com', // Replace with your SMTP host
+	host: 'smtp.example.com', // Replace with a valid SMTP host
 	port: 587,
-	secure: false, // true for 465, false for other ports
+	secure: false,
 	auth: {
 		user: 'your-email@example.com', // Replace with your email
 		pass: 'your-email-password', // Replace with your email password
