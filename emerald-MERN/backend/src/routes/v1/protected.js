@@ -2,19 +2,19 @@
 
 const express = require('express');
 const { verifyToken, checkRole } = require('../../middleware/authMiddleware');
+const handleTenantId = require('../../middleware/tenantMiddleware');
 
 const router = express.Router();
 
-// Protected route example
-// backend/src/routes/v1/protected.js
-
+// Use handleTenantId middleware
 router.get(
 	'/dashboard',
 	verifyToken,
+	handleTenantId,
 	checkRole(['SystemAdmin', 'TenantAdmin']),
 	(req, res) => {
 		res.send(
-			`Welcome ${req.user.role}, you have access to the dashboard.`
+			`Welcome ${req.user.role} from tenant ${req.tenantId}, you have access to the dashboard.`
 		);
 	}
 );
