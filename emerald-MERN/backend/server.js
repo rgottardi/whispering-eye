@@ -5,6 +5,10 @@ const dotenv = require('dotenv');
 const morgan = require('morgan');
 const cors = require('cors');
 const connectDB = require('./src/config/db');
+const winston = require('winston');
+const expressWinston = require('express-winston');
+const swaggerJsDoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
 
 // Load environment variables
 dotenv.config();
@@ -19,20 +23,71 @@ app.use(morgan('dev'));
 // Connect to MongoDB
 connectDB();
 
-// API Routes
+// Configure winston logger
+const logger = winston.createLogger({
+	level: 'info',
+	format: winston.format.json(),
+	transports: [
+		new winston.transports.File({
+			filename: 'logs/error.log',
+			level: 'error',
+		}),
+		new winston.transports.File({ filename: 'logs/combined.log' }),
+	],
+});
+
+// Express-Winston logging middleware
+app.use(
+	expressWinston.logger({
+		transports: [new winston.transports.Console()],
+		format: winston.format.combine(
+			winston.format.colorize(),
+			winston.format.json()
+		),
+	})
+);
+
+// Swagger setup
+const swaggerOptions = {
+	swaggerDefinition: {
+		openapi: '3.0.0',
+		info: {
+			title: 'Emerald QMS API',
+			version: '1.0.0',
+			description: 'API Documentation for Emerald QMS',
+		},
+	},
+	apis: ['./src/routes/v1/*.js'],
+};
+
+const swaggerDocs = swaggerJsDoc(swaggerOptions);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+
+// Import routes
 const authRoutes = require('./src/routes/v1/auth');
 const protectedRoutes = require('./src/routes/v1/protected');
+const taskRoutes = require('./src/routes/v1/tasks');
 
-// Protected API Route
-app.use('/api/v1/protected', protectedRoutes);
-
-// Auth API Routes
+// API Routes
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/protected', protectedRoutes);
+app.use('/api/v1/tasks', taskRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
 	res.send('Welcome to Emerald QMS API');
 });
+
+// Express-Winston error-logging middleware
+app.use(
+	expressWinston.errorLogger({
+		transports: [new winston.transports.Console()],
+		format: winston.format.combine(
+			winston.format.colorize(),
+			winston.format.json()
+		),
+	})
+);
 
 // Start server
 const PORT = process.env.PORT || 5000;
