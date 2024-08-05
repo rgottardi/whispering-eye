@@ -1,15 +1,14 @@
 // backend/server.js
 
 const express = require('express');
-const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const morgan = require('morgan');
 const cors = require('cors');
+const connectDB = require('./src/config/db');
 
 // Load environment variables
 dotenv.config();
 
-// Initialize express app
 const app = express();
 
 // Middleware
@@ -18,13 +17,17 @@ app.use(cors());
 app.use(morgan('dev'));
 
 // Connect to MongoDB
-mongoose
-	.connect(process.env.MONGODB_URI, {
-		useNewUrlParser: true,
-		useUnifiedTopology: true,
-	})
-	.then(() => console.log('MongoDB connected'))
-	.catch((error) => console.error('MongoDB connection error:', error));
+connectDB();
+
+// API Routes
+const authRoutes = require('./src/routes/v1/auth');
+const protectedRoutes = require('./src/routes/v1/protected');
+
+// Protected API Route
+app.use('/api/v1/protected', protectedRoutes);
+
+// Auth API Routes
+app.use('/api/v1/auth', authRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
