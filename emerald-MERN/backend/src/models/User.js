@@ -29,7 +29,9 @@ const UserSchema = new mongoose.Schema({
 	},
 	tenantId: {
 		type: String,
-		required: true,
+		required: function () {
+			return this.role !== 'SystemAdmin'; // Tenant ID is required unless the user is a system admin
+		},
 	},
 	resetPasswordToken: String,
 	resetPasswordExpires: Date,
@@ -53,6 +55,11 @@ UserSchema.methods.generatePasswordResetToken = function () {
 		.digest('hex');
 	this.resetPasswordExpires = Date.now() + 3600000; // Token valid for 1 hour
 	return resetToken;
+};
+
+// Password verification method
+UserSchema.methods.matchPassword = async function (enteredPassword) {
+	return await bcrypt.compare(enteredPassword, this.password);
 };
 
 module.exports = mongoose.model('User', UserSchema);

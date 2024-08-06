@@ -1,8 +1,8 @@
 // backend/src/controllers/taskController.js
 
-const Notification = require('../models/Notification');
 const Task = require('../models/Task');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 const sendEmail = require('../utils/email');
 const logger = require('../utils/logger');
 
@@ -31,21 +31,18 @@ exports.createTask = (io) => async (req, res) => {
 		const task = new Task({ title, description, assignedTo, tenantId });
 		await task.save();
 
-		// Create an in-app notification
 		const notification = new Notification({
 			userId: assignedUser._id,
 			message: `You have been assigned a new task: ${title}`,
 		});
 		await notification.save();
 
-		// Send email notification
 		await sendEmail(
 			assignedUser.email,
 			'New Task Assigned',
 			`Dear ${assignedUser.firstName} ${assignedUser.lastName},\nYou have been assigned a new task: ${title}`
 		);
 
-		// Send real-time notification using Socket.IO
 		io.to(assignedUser._id.toString()).emit('taskAssigned', {
 			message: `You have been assigned a new task: ${title}`,
 			task,
@@ -61,21 +58,23 @@ exports.createTask = (io) => async (req, res) => {
 
 // Get all tasks for a tenant
 exports.getTasksForTenant = async (req, res) => {
-	const tenantId = req.tenantId;
-
 	try {
-		const tasks = await Task.find({ tenantId });
-		logger.info('Fetched tasks for tenant', {
-			tenantId,
-			count: tasks.length,
+		let tasks;
+
+		if (req.isSystemAdmin) {
+			tasks = await Task.find(); // System admin can see all tasks
+		} else {
+			tasks = await Task.find({ tenantId: req.user.tenantId }); // Regular users see only their tenant's tasks
+		}
+
+		logger.info('Fetched tasks', {
+			taskCount: tasks.length,
+			role: req.user.role,
 		});
 		res.status(200).json(tasks);
 	} catch (error) {
-		logger.error('Error fetching tasks for tenant', { error });
-		res.status(500).json({
-			message: 'Error fetching tasks for tenant',
-			error,
-		});
+		logger.error('Error fetching tasks', { error });
+		res.status(500).json({ message: 'Error fetching tasks', error });
 	}
 };
 

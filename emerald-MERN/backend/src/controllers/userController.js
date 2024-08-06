@@ -1,15 +1,28 @@
 // backend/src/controllers/userController.js
 
 const User = require('../models/User');
+const logger = require('../utils/logger');
 
-// Get all users in a tenant
-exports.getUsers = async (req, res) => {
+// Get all users
+exports.getAllUsers = async (req, res) => {
 	try {
-		const users = await User.find({ tenantId: req.tenantId }).select(
-			'-password'
-		);
+		let users;
+
+		if (req.isSystemAdmin) {
+			// System admin can see all users
+			users = await User.find();
+		} else {
+			// Tenant admin and users see only their tenant's users
+			users = await User.find({ tenantId: req.user.tenantId });
+		}
+
+		logger.info('Fetched users', {
+			userCount: users.length,
+			role: req.user.role,
+		});
 		res.status(200).json(users);
 	} catch (error) {
+		logger.error('Error fetching users', { error });
 		res.status(500).json({ message: 'Error fetching users', error });
 	}
 };
