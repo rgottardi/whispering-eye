@@ -1,20 +1,31 @@
 // backend/src/middleware/tenantMiddleware.js
 
-const handleTenantId = (req, res, next) => {
-	// Check if user is a system admin
-	if (req.user && req.user.role === 'SystemAdmin') {
-		return next(); // System admins don't need a tenant ID
+const connectDB = require('../config/db');
+
+const handleTenantId = async (req, res, next) => {
+	const tenantId = req.headers['x-tenant-id']; // Expect tenant ID in the headers
+	const isSystemAdmin = req.headers['x-user-role'] === 'SystemAdmin'; // Check if the user is a system admin
+
+	if (!tenantId && !isSystemAdmin) {
+		return res
+			.status(400)
+			.json({
+				message: 'Tenant ID is required unless you are a system admin',
+			});
 	}
 
-	const tenantId = req.headers['x-tenant-id'];
-
-	if (!tenantId) {
-		return res.status(400).json({ message: 'Tenant ID is required' });
+	try {
+		// Connect to the appropriate database based on user role
+		req.dbConnection = await connectDB(tenantId, isSystemAdmin);
+		req.tenantId = tenantId;
+		req.isSystemAdmin = isSystemAdmin; // Attach role info for further processing
+		next();
+	} catch (error) {
+		res.status(500).json({
+			message: 'Error connecting to database',
+			error,
+		});
 	}
-
-	// Store tenantId in request object for further processing
-	req.tenantId = tenantId;
-	next();
 };
 
 module.exports = handleTenantId;

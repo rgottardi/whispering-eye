@@ -3,16 +3,17 @@
 const express = require('express');
 const http = require('http');
 const dotenv = require('dotenv');
+dotenv.config(); // Load environment variables from .env file
 const cors = require('cors');
 const morgan = require('morgan');
 const helmet = require('helmet');
 const { Server } = require('socket.io');
-const connectDB = require('./src/config/db');
+const passport = require('passport'); // Add passport
+const session = require('express-session'); // Add express-session for session handling
+require('./src/config/passport-config'); // Ensure passport configuration is loaded
 const logger = require('./src/utils/logger');
 const apiLimiter = require('./src/middleware/rateLimit');
-
-// Load environment variables
-dotenv.config();
+const handleTenantId = require('./src/middleware/tenantMiddleware'); // Import tenant middleware
 
 // Initialize express app and HTTP server
 const app = express();
@@ -35,8 +36,19 @@ app.use(
 	})
 ); // Log HTTP requests
 
-// Connect to MongoDB
-connectDB();
+// Initialize session for OAuth
+app.use(
+	session({
+		secret: process.env.SESSION_SECRET,
+		resave: false,
+		saveUninitialized: true,
+	})
+);
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Apply tenant middleware to all API routes
+app.use('/api/', handleTenantId); // Ensure requests have tenant context
 
 // Apply rate limiting middleware to all API routes
 app.use('/api/', apiLimiter);

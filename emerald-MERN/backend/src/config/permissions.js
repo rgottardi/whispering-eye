@@ -1,33 +1,21 @@
 // backend/src/config/permissions.js
 
 const permissions = {
-	SystemAdmin: {
-		canCreateUser: true,
-		canEditUser: true,
-		canDeleteUser: true,
-		canCreateTask: true,
-		canEditTask: true,
-		canDeleteTask: true,
-		canViewAllTasks: true,
-	},
-	TenantAdmin: {
-		canCreateUser: true,
-		canEditUser: true,
-		canDeleteUser: true,
-		canCreateTask: true,
-		canEditTask: true,
-		canDeleteTask: true,
-		canViewAllTasks: true,
-	},
-	User: {
-		canCreateUser: false,
-		canEditUser: false,
-		canDeleteUser: false,
-		canCreateTask: true,
-		canEditTask: true,
-		canDeleteTask: false,
-		canViewAllTasks: false,
-	},
+	SystemAdmin: [
+		'manage_all_tenants',
+		'view_global_data',
+		'manage_users',
+		'manage_tasks',
+	],
+	TenantAdmin: [
+		'manage_own_tenant',
+		'view_own_data',
+		'manage_users',
+		'manage_tasks',
+	],
+	Viewer: ['view_own_data'],
+	Creator: ['create_tasks'],
+	Approver: ['approve_tasks'],
 };
 
 module.exports = permissions;
