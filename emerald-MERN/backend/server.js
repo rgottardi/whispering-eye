@@ -9,6 +9,7 @@ const winston = require('winston');
 const expressWinston = require('express-winston');
 const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
+const helmet = require('helmet');
 
 // Load environment variables
 dotenv.config();
@@ -17,6 +18,7 @@ const app = express();
 
 // Middleware
 app.use(express.json());
+app.use(helmet());
 app.use(cors());
 app.use(morgan('dev'));
 
@@ -64,14 +66,18 @@ const swaggerDocs = swaggerJsDoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 // Import routes
+const routes = require('./src/routes/v1');
 const authRoutes = require('./src/routes/v1/auth');
 const protectedRoutes = require('./src/routes/v1/protected');
 const taskRoutes = require('./src/routes/v1/tasks');
+const userRoutes = require('./src/routes/v1/users');
 
 // API Routes
+app.use('/api/v1', routes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/protected', protectedRoutes);
 app.use('/api/v1/tasks', taskRoutes);
+app.use('/api/v1/users', userRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
