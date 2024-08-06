@@ -1,43 +1,27 @@
 // backend/src/controllers/userController.js
 
 const User = require('../models/User');
+const Audit = require('../models/Audit');
 const logger = require('../utils/logger');
 
 // Get all users
 exports.getUsers = async (req, res) => {
+	const { tenantId } = req;
 	try {
-		let users;
-
-		if (req.isSystemAdmin) {
-			// System admin can see all users
-			users = await User.find();
-		} else {
-			// Tenant admin and users see only their tenant's users
-			users = await User.find({ tenantId: req.user.tenantId });
-		}
-
-		logger.info('Fetched users', {
-			userCount: users.length,
-			role: req.user.role,
-		});
+		const users = await User.find({ tenantId });
 		res.status(200).json(users);
 	} catch (error) {
-		logger.error('Error fetching users', { error });
-		res.status(500).json({ message: 'Error fetching users', error });
+		logger.error('Error retrieving users:', { error });
+		res.status(500).json({ message: 'Error retrieving users', error });
 	}
 };
 
 // Create a new user
 exports.createUser = async (req, res) => {
 	const { firstName, lastName, email, password, role } = req.body;
-	const tenantId = req.tenantId;
+	const { tenantId, user } = req;
 
 	try {
-		const existingUser = await User.findOne({ email });
-		if (existingUser) {
-			return res.status(400).json({ message: 'Email already in use' });
-		}
-
 		const newUser = new User({
 			firstName,
 			lastName,
@@ -46,60 +30,101 @@ exports.createUser = async (req, res) => {
 			role,
 			tenantId,
 		});
+
 		await newUser.save();
+
+		// Audit log for user creation
+		await new Audit({
+			userId: user._id,
+			action: 'Create User',
+			details: {
+				userId: newUser._id,
+				firstName,
+				lastName,
+				email,
+				role,
+			},
+			tenantId,
+		}).save();
 
 		res.status(201).json({
 			message: 'User created successfully',
-			user: newUser,
+			newUser,
 		});
 	} catch (error) {
+		logger.error('Error creating user:', { error });
 		res.status(500).json({ message: 'Error creating user', error });
 	}
 };
 
 // Update a user
 exports.updateUser = async (req, res) => {
+	const { id } = req.params;
 	const { firstName, lastName, email, role } = req.body;
-	const userId = req.params.id;
+	const { tenantId, user } = req;
 
 	try {
-		const user = await User.findById(userId);
-		if (!user) {
+		const existingUser = await User.findOne({ _id: id, tenantId });
+		if (!existingUser) {
 			return res.status(404).json({ message: 'User not found' });
 		}
 
-		if (email !== user.email) {
-			const emailTaken = await User.findOne({ email });
-			if (emailTaken) {
-				return res
-					.status(400)
-					.json({ message: 'Email already in use' });
-			}
-		}
+		existingUser.firstName = firstName || existingUser.firstName;
+		existingUser.lastName = lastName || existingUser.lastName;
+		existingUser.email = email || existingUser.email;
+		existingUser.role = role || existingUser.role;
 
-		user.firstName = firstName || user.firstName;
-		user.lastName = lastName || user.lastName;
-		user.email = email || user.email;
-		user.role = role || user.role;
+		await existingUser.save();
 
-		await user.save();
-		res.status(200).json({ message: 'User updated successfully', user });
+		// Audit log for user update
+		await new Audit({
+			userId: user._id,
+			action: 'Update User',
+			details: {
+				userId: existingUser._id,
+				firstName,
+				lastName,
+				email,
+				role,
+			},
+			tenantId,
+		}).save();
+
+		res.status(200).json({
+			message: 'User updated successfully',
+			existingUser,
+		});
 	} catch (error) {
+		logger.error('Error updating user:', { error });
 		res.status(500).json({ message: 'Error updating user', error });
 	}
 };
 
 // Delete a user
 exports.deleteUser = async (req, res) => {
-	const userId = req.params.id;
+	const { id } = req.params;
+	const { tenantId, user } = req;
 
 	try {
-		const user = await User.findByIdAndDelete(userId);
-		if (!user) {
+		const userToDelete = await User.findOneAndDelete({
+			_id: id,
+			tenantId,
+		});
+		if (!userToDelete) {
 			return res.status(404).json({ message: 'User not found' });
 		}
+
+		// Audit log for user deletion
+		await new Audit({
+			userId: user._id,
+			action: 'Delete User',
+			details: { userId: userToDelete._id, email: userToDelete.email },
+			tenantId,
+		}).save();
+
 		res.status(200).json({ message: 'User deleted successfully' });
 	} catch (error) {
+		logger.error('Error deleting user:', { error });
 		res.status(500).json({ message: 'Error deleting user', error });
 	}
 };

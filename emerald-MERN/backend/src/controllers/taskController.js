@@ -5,7 +5,28 @@ const User = require('../models/User');
 const Workflow = require('../models/Workflow');
 const Notification = require('../models/Notification');
 const sendEmail = require('../utils/email');
+const Audit = require('../models/Audit'); // Import the Audit model
 const logger = require('../utils/logger');
+
+// Helper function to send notifications
+const notifyUser = async (userId, message) => {
+	const user = await User.findById(userId);
+	if (!user) throw new Error('User not found');
+
+	const notification = new Notification({
+		userId,
+		message,
+		tenantId: user.tenantId,
+	});
+	await notification.save();
+
+	// Optionally send email notification
+	await sendEmail({
+		to: user.email,
+		subject: 'Notification',
+		text: message,
+	});
+};
 
 // Create a new task
 exports.createTask = async (req, res) => {
@@ -48,18 +69,18 @@ exports.createTask = async (req, res) => {
 		await task.save();
 
 		// Notify the assigned user
-		const notification = new Notification({
-			userId: assignedTo,
-			message: `You have been assigned a new task: ${title}`,
-			tenantId,
-		});
-		await notification.save();
+		await notifyUser(
+			assignedTo,
+			`You have been assigned a new task: ${title}`
+		);
 
-		await sendEmail({
-			to: assignedUser.email,
-			subject: 'New Task Assigned',
-			text: `You have been assigned a new task: ${title}`,
-		});
+		// Audit log for task creation
+		await new Audit({
+			userId: user._id,
+			action: 'Create Task',
+			details: { taskId: task._id, title, description, assignedTo },
+			tenantId,
+		}).save();
 
 		res.status(201).json({ message: 'Task created successfully', task });
 	} catch (error) {
@@ -72,7 +93,7 @@ exports.createTask = async (req, res) => {
 exports.updateTask = async (req, res) => {
 	const { id } = req.params;
 	const { title, description, assignedTo, status, dueDate } = req.body;
-	const { tenantId } = req;
+	const { tenantId, user } = req;
 
 	try {
 		const task = await Task.findOne({ _id: id, tenantId });
@@ -100,6 +121,25 @@ exports.updateTask = async (req, res) => {
 		task.updatedAt = Date.now();
 
 		await task.save();
+
+		// Notify the assigned user
+		if (assignedTo) {
+			await notifyUser(assignedTo, `Task updated: ${task.title}`);
+		}
+
+		// Audit log for task update
+		await new Audit({
+			userId: user._id,
+			action: 'Update Task',
+			details: {
+				taskId: task._id,
+				title,
+				description,
+				assignedTo,
+				status,
+			},
+			tenantId,
+		}).save();
 
 		res.status(200).json({ message: 'Task updated successfully', task });
 	} catch (error) {
@@ -143,6 +183,17 @@ exports.approveTaskStep = async (req, res) => {
 		}
 
 		await task.save();
+
+		// Notify the task creator about the approval
+		await notifyUser(task.createdBy, `Task approved: ${task.title}`);
+
+		// Audit log for task approval
+		await new Audit({
+			userId: user._id,
+			action: 'Approve Task Step',
+			details: { taskId: task._id, comment },
+			tenantId,
+		}).save();
 
 		res.status(200).json({ message: 'Task step approved', task });
 	} catch (error) {
