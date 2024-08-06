@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const sendEmail = require('../utils/email');
+const logger = require('../utils/logger');
 
 // Helper function to create a JWT token
 const createToken = (user) => {
@@ -17,7 +18,7 @@ const createToken = (user) => {
 	);
 };
 
-// Register a new user with role
+// Register a new user
 exports.register = async (req, res) => {
 	const { firstName, lastName, email, password, role } = req.body;
 	try {
@@ -33,7 +34,8 @@ exports.register = async (req, res) => {
 			lastName,
 			email,
 			password,
-			role: role || 'User',
+			role: role || 'Viewer',
+			tenantId: req.tenantId,
 		});
 
 		// Save the user to the database
@@ -45,14 +47,15 @@ exports.register = async (req, res) => {
 		// Set the token in an HTTP-only cookie
 		res.cookie('jwt', token, {
 			httpOnly: true,
-			secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+			secure: process.env.NODE_ENV === 'production',
 			sameSite: 'Strict',
 		});
 
 		// Respond with a success message and user data
 		res.status(201).json({ message: 'Registration successful', user });
 	} catch (error) {
-		res.status(400).json({ message: error.message });
+		logger.error('Error registering user:', { error });
+		res.status(500).json({ message: 'Error registering user', error });
 	}
 };
 
@@ -65,7 +68,7 @@ exports.login = async (req, res) => {
 		if (!user) throw new Error('Invalid email or password');
 
 		// Check if the password matches
-		const isMatch = await bcrypt.compare(password, user.password);
+		const isMatch = await user.comparePassword(password);
 		if (!isMatch) throw new Error('Invalid email or password');
 
 		// Generate a token
@@ -74,13 +77,14 @@ exports.login = async (req, res) => {
 		// Set the token in an HTTP-only cookie
 		res.cookie('jwt', token, {
 			httpOnly: true,
-			secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+			secure: process.env.NODE_ENV === 'production',
 			sameSite: 'Strict',
 		});
 
 		// Respond with a success message and user data
 		res.status(200).json({ message: 'Login successful', user });
 	} catch (error) {
+		logger.error('Error logging in:', { error });
 		res.status(400).json({ message: error.message });
 	}
 };

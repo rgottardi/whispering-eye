@@ -6,31 +6,26 @@ const dotenv = require('dotenv');
 dotenv.config(); // Load environment variables
 const cors = require('cors');
 const morgan = require('morgan');
-const helmet = require('helmet');
-const { Server } = require('socket.io');
 const passport = require('passport');
 const session = require('express-session');
+const connectDB = require('./src/config/db');
 const logger = require('./src/utils/logger');
-const apiLimiter = require('./src/middleware/rateLimit');
+const {
+	secureHeaders,
+	apiLimiter,
+} = require('./src/middleware/securityMiddleware');
 const handleTenantId = require('./src/middleware/tenantMiddleware');
-const connectDB = require('./src/config/db'); // Import the database connection function
+require('./src/config/passport-config'); // Ensure passport configuration is loaded
 
 // Connect to the database
-connectDB(); // Call the database connection function
-
-require('./src/config/passport-config'); // Ensure passport configuration is loaded
+connectDB();
 
 // Initialize express app and HTTP server
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-	cors: {
-		origin: '*', // Allow all origins for simplicity; refine for production
-	},
-});
 
 // Middleware
-app.use(helmet()); // Security best practices
+app.use(secureHeaders); // Apply security headers
 app.use(cors()); // Enable CORS
 app.use(express.json()); // Parse JSON bodies
 app.use(
@@ -59,21 +54,12 @@ app.use('/api/', handleTenantId); // Ensure requests have tenant context
 app.use('/api/', apiLimiter);
 
 // Initialize routes with Socket.IO instance
-app.use('/api/v1', require('./src/routes/v1')(io));
+app.use('/api/v1', require('./src/routes/v1')(server));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
 	logger.error('Internal Server Error:', { error: err.stack });
 	res.status(500).send({ message: 'Internal Server Error' });
-});
-
-// Socket.IO connection handling
-io.on('connection', (socket) => {
-	logger.info('New client connected', { socketId: socket.id });
-
-	socket.on('disconnect', () => {
-		logger.info('Client disconnected', { socketId: socket.id });
-	});
 });
 
 // Start the server
