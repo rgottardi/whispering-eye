@@ -7,7 +7,7 @@ const checkPermission = (action) => (req, res, next) => {
 	const userRole = req.user.role;
 	const rolePermissions = permissions[userRole];
 
-	if (!rolePermissions.includes(action)) {
+	if (!rolePermissions || !rolePermissions.includes(action)) {
 		return res.status(403).send('Access denied');
 	}
 	next();

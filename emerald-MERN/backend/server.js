@@ -3,17 +3,22 @@
 const express = require('express');
 const http = require('http');
 const dotenv = require('dotenv');
-dotenv.config(); // Load environment variables from .env file
+dotenv.config(); // Load environment variables
 const cors = require('cors');
 const morgan = require('morgan');
 const helmet = require('helmet');
 const { Server } = require('socket.io');
-const passport = require('passport'); // Add passport
-const session = require('express-session'); // Add express-session for session handling
-require('./src/config/passport-config'); // Ensure passport configuration is loaded
+const passport = require('passport');
+const session = require('express-session');
 const logger = require('./src/utils/logger');
 const apiLimiter = require('./src/middleware/rateLimit');
-const handleTenantId = require('./src/middleware/tenantMiddleware'); // Import tenant middleware
+const handleTenantId = require('./src/middleware/tenantMiddleware');
+const connectDB = require('./src/config/db'); // Import the database connection function
+
+// Connect to the database
+connectDB(); // Call the database connection function
+
+require('./src/config/passport-config'); // Ensure passport configuration is loaded
 
 // Initialize express app and HTTP server
 const app = express();

@@ -1,22 +1,20 @@
 // backend/src/routes/v1/index.js
 
 const express = require('express');
-const userRoutes = require('./users');
-const taskRoutes = require('./tasks');
 const authRoutes = require('./auth');
-const notificationRoutes = require('./notifications');
+const taskRoutes = require('./tasks');
+const userRoutes = require('./users');
 const uploadRoutes = require('./uploads');
-const protectedRoutes = require('./protected');
+const notificationRoutes = require('./notifications');
 
 module.exports = (io) => {
 	const router = express.Router();
 
-	router.use('/users', userRoutes);
-	router.use('/tasks', taskRoutes(io)); // Pass io if needed
 	router.use('/auth', authRoutes);
-	router.use('/notifications', notificationRoutes);
+	router.use('/tasks', taskRoutes);
+	router.use('/users', userRoutes);
 	router.use('/uploads', uploadRoutes);
-	router.use('/protected', protectedRoutes);
+	router.use('/notifications', notificationRoutes);
 
 	return router;
 };

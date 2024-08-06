@@ -1,55 +1,28 @@
 // backend/src/routes/v1/tasks.js
 
 const express = require('express');
+const { verifyToken } = require('../../middleware/authMiddleware');
+const checkPermission = require('../../middleware/permissionMiddleware');
 const {
 	createTask,
-	getTasksForTenant,
 	updateTask,
-	deleteTask,
+	approveTaskStep,
 } = require('../../controllers/taskController');
 
-const { verifyToken } = require('../../middleware/authMiddleware');
-const handleTenantId = require('../../middleware/tenantMiddleware');
-const checkPermission = require('../../middleware/permissionMiddleware');
+const router = express.Router();
 
-module.exports = (io) => {
-	const router = express.Router();
+// Create a task
+router.post('/', verifyToken, checkPermission('create_tasks'), createTask);
 
-	// Route to create a task
-	router.post(
-		'/',
-		verifyToken,
-		handleTenantId,
-		checkPermission('canCreateTask'),
-		createTask(io)
-	);
+// Update a task
+router.put('/:id', verifyToken, checkPermission('update_tasks'), updateTask);
 
-	// Route to get tasks for a tenant
-	router.get(
-		'/',
-		verifyToken,
-		handleTenantId,
-		checkPermission('canViewAllTasks'),
-		getTasksForTenant
-	);
+// Approve a task step
+router.post(
+	'/:id/approve',
+	verifyToken,
+	checkPermission('approve_tasks'),
+	approveTaskStep
+);
 
-	// Route to update a task
-	router.put(
-		'/:id',
-		verifyToken,
-		handleTenantId,
-		checkPermission('canEditTask'),
-		updateTask(io)
-	);
-
-	// Route to delete a task
-	router.delete(
-		'/:id',
-		verifyToken,
-		handleTenantId,
-		checkPermission('canDeleteTask'),
-		deleteTask(io)
-	);
-
-	return router;
-};
+module.exports = router;
