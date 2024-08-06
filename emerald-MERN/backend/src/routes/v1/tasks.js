@@ -4,28 +4,52 @@ const express = require('express');
 const {
 	createTask,
 	getTasksForTenant,
+	updateTask,
+	deleteTask,
 } = require('../../controllers/taskController');
-const { verifyToken, checkRole } = require('../../middleware/authMiddleware');
+
+const { verifyToken } = require('../../middleware/authMiddleware');
 const handleTenantId = require('../../middleware/tenantMiddleware');
+const checkPermission = require('../../middleware/permissionMiddleware');
 
-const router = express.Router();
+module.exports = (io) => {
+	const router = express.Router();
 
-// Route to create a task
-router.post(
-	'/create',
-	verifyToken,
-	handleTenantId,
-	checkRole(['TenantAdmin', 'SystemAdmin']), // Ensure these roles have access
-	createTask
-);
+	// Route to create a task
+	router.post(
+		'/',
+		verifyToken,
+		handleTenantId,
+		checkPermission('canCreateTask'),
+		createTask(io)
+	);
 
-// Route to get tasks for a tenant
-router.get(
-	'/',
-	verifyToken,
-	handleTenantId,
-	checkRole(['TenantAdmin', 'SystemAdmin']), // Ensure these roles have access
-	getTasksForTenant
-);
+	// Route to get tasks for a tenant
+	router.get(
+		'/',
+		verifyToken,
+		handleTenantId,
+		checkPermission('canViewAllTasks'),
+		getTasksForTenant
+	);
 
-module.exports = router;
+	// Route to update a task
+	router.put(
+		'/:id',
+		verifyToken,
+		handleTenantId,
+		checkPermission('canEditTask'),
+		updateTask(io)
+	);
+
+	// Route to delete a task
+	router.delete(
+		'/:id',
+		verifyToken,
+		handleTenantId,
+		checkPermission('canDeleteTask'),
+		deleteTask(io)
+	);
+
+	return router;
+};

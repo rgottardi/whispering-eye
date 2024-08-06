@@ -3,12 +3,18 @@
 const express = require('express');
 const authRoutes = require('./auth');
 const taskRoutes = require('./tasks');
-const userRoutes = require('./users'); // Ensure this is imported
+const userRoutes = require('./users');
+const uploadRoutes = require('./uploads');
+const notificationRoutes = require('./notifications'); // Import notification routes
 
-const router = express.Router();
+module.exports = (io) => {
+	const router = express.Router();
 
-router.use('/auth', authRoutes);
-router.use('/tasks', taskRoutes);
-router.use('/users', userRoutes); // Ensure this is registered
+	router.use('/auth', authRoutes);
+	router.use('/tasks', taskRoutes(io));
+	router.use('/users', userRoutes);
+	router.use('/uploads', uploadRoutes);
+	router.use('/notifications', notificationRoutes); // Add notification routes
 
-module.exports = router;
+	return router;
+};

@@ -1,38 +1,32 @@
 // backend/src/utils/email.js
 
 const nodemailer = require('nodemailer');
-const dotenv = require('dotenv');
 
-// Load environment variables from .env file
-dotenv.config();
+// Create a transporter object using the default SMTP transport
+const transporter = nodemailer.createTransport({
+	host: process.env.EMAIL_HOST,
+	port: process.env.EMAIL_PORT,
+	secure: process.env.EMAIL_PORT == 465, // true for 465, false for other ports
+	auth: {
+		user: process.env.EMAIL_USER,
+		pass: process.env.EMAIL_PASS,
+	},
+});
 
-// Create a transporter for sending emails
-const sendEmail = async ({ to, subject, text }) => {
-	const transporter = nodemailer.createTransport({
-		service: 'Gmail',
-		auth: {
-			user: process.env.EMAIL_USER,
-			pass: process.env.EMAIL_PASS,
-		},
-	});
+// Function to send an email
+const sendEmail = async (to, subject, text) => {
+	try {
+		const info = await transporter.sendMail({
+			from: process.env.EMAIL_FROM, // Sender address
+			to, // List of recipients
+			subject, // Subject line
+			text, // Plain text body
+		});
 
-	// Email options
-	const mailOptions = {
-		from: process.env.EMAIL_USER,
-		to: 'recipient@example.com',
-		subject: '👋 Hello from Node.js 🚀',
-		text: 'This is a test email sent from Node.js using nodemailer. 📧💻',
-	};
-
-	await transporter.sendMail(mailOptions);
-
-	// await transporter.sendMail(mailOptions, (error, info) => {
-	// 	if (error) {
-	// 		console.error('❌ Error:', error.message);
-	// 	} else {
-	// 		console.log('✅ Email sent:', info.response);
-	// 	}
-	// });
+		console.log(`Email sent: ${info.messageId}`);
+	} catch (error) {
+		console.error('Error sending email:', error);
+	}
 };
 
 module.exports = sendEmail;
