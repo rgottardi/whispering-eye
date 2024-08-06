@@ -4,7 +4,7 @@ const User = require('../models/User');
 const logger = require('../utils/logger');
 
 // Get all users
-exports.getAllUsers = async (req, res) => {
+exports.getUsers = async (req, res) => {
 	try {
 		let users;
 
